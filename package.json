@@ -1,18 +1,16 @@
 {
-  "name": "node-js-server",
-  "version": "0.0.1",
-  "description": "Server for game",
-  "engines": {
-    "node": "4.4.4"
-  },
+  "name": "friend_request",
+  "version": "1.0.0",
+  "description": "",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "author": "Aymen",
+  "license": "ISC",
   "dependencies": {
-    "express": "4.13.4",
-    "socket.io": "1.4.6",
-    "shortid": "2.2.6",
-    "mongodb": "2.2.29"
+    "body-parser": "^1.17.2",
+    "express": "^4.15.3",
+    "mongoose": "^4.11.4"
   }
 }

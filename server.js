@@ -1,134 +1,49 @@
-var port = process.env.PORT || 5057;
-var IPADDRESS = process.env.IP || '127.0.0.1';
-var port2 = 3001;
+var express = require('express');
+var app = express(); //init Express
+var bodyParser = require('body-parser');
+var mongoose = require('mongoose');
+var Request = require('./app/models/Request');
+mongoose.connect('mongodb://toutouastro:toutouastro@ds032887.mlab.com:32887/pokemap');
 
-var socket2 = require('socket.io')(port2);
-var socket = require('socket.io')(port);
+//init bodyParser to extract properties from POST data
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-var shortId = require('shortid');
-const MongoClient = require('mongodb').MongoClient;
-
-var players = [];
-var thisPlayerId;
-var playerSpeed = 3;
-
-var db;
-var roomId;
-var room = shortId.generate();
-
-
-
-console.log("Server started at port : " + port);
-
-
-
-
-socket.on('connection', function (socket) 
-{
-    console.log("client Unity connected ");
-
-
-    socket.on('registerChat', function(data)
-    {
-        roomId =  data.rev.id+data.me.id
-            socket.join(roomId);
-                console.log("client Unity Joint room ", data.rev.id+data.me.id);
-                    socket.broadcast.to(roomId).emit('successReg',roomId);
-    });
-
-
-    socket.on('login', function(data)
-    {
-        console.log(data.id);
-            MongoClient.connect('mongodb://pokemap:fucksatan001@ds032887.mlab.com:32887/pokemap', function(err, db) 
-            {
-                if (err) throw err;
-                    var idd = data.id;
-
-                var myobj = { id: data.id, username: data.name , email: data.email };
-                    db.collection("user").findOne({id:idd}).then(function(doc) 
-                    {
-                        if(!doc)
-                        {
-                                db.collection("user").insertOne(myobj, function(err, res) 
-                                {
-                                        if (err) throw err;
-                                        console.log("1 record inserted");
-                                });  
-                        }
-            
-                        socket.emit('success',doc);
-                        console.log(doc);
-                    });
-            
-                    
-   
-             });
-
-       
-        //socket.broadcast.emit('send',data);
-    });
-
- 
-
-    socket.on('send', function(data)
-    {
-        socket.broadcast.to(roomId).emit('send',data);
-            console.log("broadcast ", roomId);
-
-                MongoClient.connect('mongodb://pokemap:fucksatan001@ds032887.mlab.com:32887/pokemap', function(err, db) 
-                {
-                    if (err) throw err;
-                        var myobj = { idSend: data.id, msg: data.msg ,idRes : data.res , idroom:data.room};
-                            db.collection("chat").insertOne(myobj, function(err, res) 
-                            {
-                                if (err) throw err;
-                                console.log("1 record inserted");
-   
-                            });
-       
-                    //socket.broadcast.emit('send',data);
-                });
-
-
-    });
-
-    
-    socket.on('disconnect', function () 
-    {
-            console.log('client disconected');
-                delete players[thisPlayerId];
-                    socket.emit('disconnected', {id:thisPlayerId});
-    });
-
+var port = process.env.PORT || 8080;
+//init Express Router
+var router = express.Router();
+//default/test route
+router.get('/toutou', function(req, res) {
+  res.json({ message: 'App is running!' });
 });
 
+router.route('/requests')
 
-socket2.on('connect', function (socket2) 
-{
-    
-        console.log("server started on port " + port2 +" And recived a Connection");
-    
-    socket2.on("userS",function(data)
-    {
-        thisPlayerId=data.arrayToSendToBrowser.id
-        
-            players[thisPlayerId] = data.arrayToSendToBrowser;
-                console.log(players[thisPlayerId].sockid);
-        
+  .get(function(req, res) {
+    console.log (req.query.dest_id);
+    Request.find({"dest": req.query.dest_id}, function(err, contact) {
+      if (err)
+        res.send(err);
+
+      console.log (contact);
+      res.json(contact);
     });
 
+  })
+  // update contact: PUT http://localhost:8080/api/contacts/{id}
+  .post(function(req, res) {
+        var request = new Request ({"src" :req.body.src, "dest":req.body.dest});
+        console.log ({"src" :req.body.src, "dest":req.body.dest});
+        request.save(function(err) {
+        if (err)
+            res.send(err);
+        res.json({ message: 'Request created!' });
+      });
 
+  });
 
-
-    socket2.on('disconnect', function () 
-    {
-        console.log('client disconected');
-            delete players[thisPlayerId];
-                socket2.emit('disconnected', {id:thisPlayerId});
-    });
-
-});
-
-
-
+//associate router to url path
+app.use('/', router);
+//start the Express server
+app.listen(port);
+console.log('Listening on port ' + port);
